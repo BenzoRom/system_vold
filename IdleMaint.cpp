@@ -31,11 +31,11 @@
 #include <hardware_legacy/power.h>
 
 #include <dirent.h>
+#include <fcntl.h>
 #include <sys/mount.h>
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <sys/wait.h>
-#include <fcntl.h>
 
 using android::base::Basename;
 using android::base::ReadFileToString;
@@ -73,8 +73,7 @@ static IdleMaintStats idle_maint_stat(IdleMaintStats::kStopped);
 static std::condition_variable cv_abort, cv_stop;
 static std::mutex cv_m;
 
-static void addFromVolumeManager(std::list<std::string>* paths,
-                                 PathTypes path_type) {
+static void addFromVolumeManager(std::list<std::string>* paths, PathTypes path_type) {
     VolumeManager* vm = VolumeManager::Instance();
     std::list<std::string> privateIds;
     vm->listVolumes(VolumeBase::Type::kPrivate, privateIds);
@@ -88,11 +87,9 @@ static void addFromVolumeManager(std::list<std::string>* paths,
                 const std::string& fs_type = vol->getFsType();
                 if (fs_type == "f2fs" && (Realpath(vol->getRawDmDevPath(), &gc_path) ||
                                           Realpath(vol->getRawDevPath(), &gc_path))) {
-                    paths->push_back(std::string("/sys/fs/") + fs_type +
-                                     "/" + Basename(gc_path));
+                    paths->push_back(std::string("/sys/fs/") + fs_type + "/" + Basename(gc_path));
                 }
             }
-
         }
     }
 }
@@ -100,7 +97,7 @@ static void addFromVolumeManager(std::list<std::string>* paths,
 static void addFromFstab(std::list<std::string>* paths, PathTypes path_type) {
     std::unique_ptr<fstab, decltype(&fs_mgr_free_fstab)> fstab(fs_mgr_read_fstab_default(),
                                                                fs_mgr_free_fstab);
-    struct fstab_rec *prev_rec = NULL;
+    struct fstab_rec* prev_rec = NULL;
 
     for (int i = 0; i < fstab->num_entries; i++) {
         auto fs_type = std::string(fstab->recs[i].fs_type);
@@ -131,10 +128,11 @@ static void addFromFstab(std::list<std::string>* paths, PathTypes path_type) {
         } else if (path_type == PathTypes::kBlkDevice) {
             std::string gc_path;
             if (std::string(fstab->recs[i].fs_type) == "f2fs" &&
-                Realpath(android::vold::BlockDeviceForPath(
-                    std::string(fstab->recs[i].mount_point) + "/"), &gc_path)) {
-                paths->push_back(std::string("/sys/fs/") + fstab->recs[i].fs_type +
-                                 "/" + Basename(gc_path));
+                Realpath(
+                    android::vold::BlockDeviceForPath(std::string(fstab->recs[i].mount_point) + "/"),
+                    &gc_path)) {
+                paths->push_back(std::string("/sys/fs/") + fstab->recs[i].fs_type + "/" +
+                                 Basename(gc_path));
             }
         }
 
@@ -177,8 +175,8 @@ void Trim(const android::sp<android::os::IVoldTaskListener>& listener) {
             }
         } else {
             nsecs_t time = systemTime(SYSTEM_TIME_BOOTTIME) - start;
-            LOG(INFO) << "Trimmed " << range.len << " bytes on " << path
-                    << " in " << nanoseconds_to_milliseconds(time) << "ms";
+            LOG(INFO) << "Trimmed " << range.len << " bytes on " << path << " in "
+                      << nanoseconds_to_milliseconds(time) << "ms";
             extras.putLong(String16("bytes"), range.len);
             extras.putLong(String16("time"), time);
             if (listener) {
@@ -223,8 +221,8 @@ static bool waitForGc(const std::list<std::string>& paths) {
         }
 
         lk.lock();
-        aborted = cv_abort.wait_for(lk, 10s, []{
-            return idle_maint_stat == IdleMaintStats::kAbort;});
+        aborted =
+            cv_abort.wait_for(lk, 10s, [] { return idle_maint_stat == IdleMaintStats::kAbort; });
         lk.unlock();
     }
 
@@ -260,7 +258,7 @@ static int stopGc(const std::list<std::string>& paths) {
 static void runDevGc(void) {
     std::unique_ptr<fstab, decltype(&fs_mgr_free_fstab)> fstab(fs_mgr_read_fstab_default(),
                                                                fs_mgr_free_fstab);
-    struct fstab_rec *rec = NULL;
+    struct fstab_rec* rec = NULL;
 
     for (int i = 0; i < fstab->num_entries; i++) {
         if (fs_mgr_has_sysfs_path(&fstab->recs[i])) {
@@ -369,8 +367,7 @@ int AbortIdleMaint(const android::sp<android::os::IVoldTaskListener>& listener) 
         cv_abort.notify_one();
         lk.lock();
         LOG(DEBUG) << "aborting idle maintenance";
-        cv_stop.wait(lk, []{
-            return idle_maint_stat == IdleMaintStats::kStopped;});
+        cv_stop.wait(lk, [] { return idle_maint_stat == IdleMaintStats::kStopped; });
     }
     lk.unlock();
 
