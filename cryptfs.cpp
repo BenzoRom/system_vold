@@ -38,10 +38,10 @@
 #include <openssl/evp.h>
 #include <openssl/sha.h>
 #include <errno.h>
-#include <ext4_utils/ext4_crypt.h>
 #include <ext4_utils/ext4_utils.h>
 #include <linux/kdev_t.h>
 #include <fs_mgr.h>
+#include <fscrypt/fscrypt.h>
 #include <time.h>
 #include <math.h>
 #include <selinux/selinux.h>
@@ -56,7 +56,7 @@
 #include "ScryptParameters.h"
 #include "VolumeManager.h"
 #include "VoldUtil.h"
-#include "Ext4Crypt.h"
+#include "FsCrypt.h"
 #include "f2fs_sparseblock.h"
 #include "EncryptInplace.h"
 #include "Process.h"
@@ -1605,7 +1605,7 @@ static int cryptfs_restart_internal(int restart_main) {
 
 int cryptfs_restart(void) {
     SLOGI("cryptfs_restart");
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("cryptfs_restart not valid for file encryption:");
         return -1;
     }
@@ -1626,7 +1626,7 @@ static int do_crypto_complete(const char* mount_point) {
     }
 
     // crypto_complete is full disk encrypted status
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         return CRYPTO_COMPLETE_NOT_ENCRYPTED;
     }
 
@@ -1831,7 +1831,7 @@ int cryptfs_setup_ext_volume(const char* label, const char* real_blkdev, const u
     strlcpy((char*)ext_crypt_ftr.crypto_type_name, cryptfs_get_crypto_name(),
             MAX_CRYPTO_TYPE_NAME_LEN);
     uint32_t flags = 0;
-    if (e4crypt_is_native() &&
+    if (fscrypt_is_native() &&
         android::base::GetBoolProperty("ro.crypto.allow_encrypt_override", false))
         flags |= CREATE_CRYPTO_BLK_DEV_FLAGS_ALLOW_ENCRYPT_OVERRIDE;
 
@@ -1870,7 +1870,7 @@ int check_unmounted_and_get_ftr(struct crypt_mnt_ftr* crypt_ftr) {
 
 int cryptfs_check_passwd(const char* passwd) {
     SLOGI("cryptfs_check_passwd");
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("cryptfs_check_passwd not valid for file encryption");
         return -1;
     }
@@ -2423,7 +2423,7 @@ int cryptfs_enable_default(int no_ui) {
 }
 
 int cryptfs_changepw(int crypt_type, const char* newpw) {
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("cryptfs_changepw not valid for file encryption");
         return -1;
     }
@@ -2618,7 +2618,7 @@ static int persist_count_keys(const char* fieldname) {
 
 /* Return the value of the specified field. */
 int cryptfs_getfield(const char* fieldname, char* value, int len) {
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("Cannot get field when file encrypted");
         return -1;
     }
@@ -2683,7 +2683,7 @@ out:
 
 /* Set the value of the specified field. */
 int cryptfs_setfield(const char* fieldname, const char* value) {
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("Cannot set field when file encrypted");
         return -1;
     }
@@ -2803,7 +2803,7 @@ int cryptfs_mount_default_encrypted(void) {
 /* Returns type of the password, default, pattern, pin or password.
  */
 int cryptfs_get_password_type(void) {
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("cryptfs_get_password_type not valid for file encryption");
         return -1;
     }
@@ -2823,7 +2823,7 @@ int cryptfs_get_password_type(void) {
 }
 
 const char* cryptfs_get_password() {
-    if (e4crypt_is_native()) {
+    if (fscrypt_is_native()) {
         SLOGE("cryptfs_get_password not valid for file encryption");
         return 0;
     }
